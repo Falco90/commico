@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: str | None = None
     GITHUB_REDIRECT_URI: str | None = None
 
+    #JWT
+    ACCESS_TOKEN_EXPIRE_MINUTES: float = 120.0
+    SECRET_KEY: str | None = None
+    ALGORITHM: str = "HS256"
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8"

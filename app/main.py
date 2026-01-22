@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 from datetime import datetime, timedelta, timezone
 import httpx
 
@@ -12,6 +12,36 @@ from pwdlib import PasswordHash
 from core.settings import settings
 
 app = FastAPI()
+
+def create_access_token(
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None
+) -> str:
+    to_encode = data.copy()
+
+    now = datetime.now(timezone.utc)
+    if expires_delta:
+        expire = now + expires_delta
+    else:
+        expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": now,
+            "type": "access"
+        }
+    )
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
+    )
+
+    print(f"encoded jwt: {encoded_jwt}")
+    return encoded_jwt
+
 
 @app.get("/auth/github/login")
 async def github_login():
@@ -62,14 +92,8 @@ async def github_callback(code: str):
             raise HTTPException(status_code=400, detail="Could not fetch Github user")
 
         github_user = user_response.json()
-        print(f"response: {github_user}")
-        github_id = github_user["id"]
-        github_username = github_user["login"]
-        email = github_user.get("email")
         
-        print(f"github id: {github_id}")
-        print(f"github username: {github_username}")
-        print(f"github email: {email}")
+        jwt_token = create_access_token(data={"sub": str(github_user["id"])})
 
 
 
