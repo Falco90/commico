@@ -9,7 +9,8 @@ from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ValidationError
 from pwdlib import PasswordHash
-from core.settings import settings
+from app.core.settings import settings
+from app.models.user import User
 
 app = FastAPI()
 
