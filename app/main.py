@@ -93,8 +93,8 @@ async def github_callback(code: str):
             raise HTTPException(status_code=400, detail="Could not fetch Github user")
 
         github_user = user_response.json()
-        
+        print(f"github_user: {github_user}")        
         jwt_token = create_access_token(data={"sub": str(github_user["id"])})
-
+        return {"status": "succesful", "detail": f"logged in as {github_user["login"]}"}
 
 
