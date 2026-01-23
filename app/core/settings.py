@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str | None = None
     ALGORITHM: str = "HS256"
 
+    #DB
+    POSTGRES_PASSWORD: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8"
