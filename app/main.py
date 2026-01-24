@@ -1,7 +1,7 @@
 from typing import Annotated, Any
 from datetime import datetime, timedelta, timezone
 import httpx
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -60,7 +60,7 @@ async def github_login():
 async def github_callback(code: str):
     token_url = "https://github.com/login/oauth/access_token"
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         token_response = await client.post(
             token_url,
             headers={"Accept": "application/json"},
@@ -81,7 +81,7 @@ async def github_callback(code: str):
     if not access_token:
         raise HTTPException(status_code=400, detail="No access token from Github")
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         user_response = await client.get(
             "https://api.github.com/user",
             headers={
@@ -94,15 +94,20 @@ async def github_callback(code: str):
             raise HTTPException(status_code=400, detail="Could not fetch Github user")
 
         github_user = user_response.json()
-
-        user = User(github_id=github_user["id"], github_username=github_user["login"])
-        print(f"User to db: {user}")
         
-        session = Session(engine)
-        session.add(user)
-        session.commit()
+        user = User(github_id=github_user["id"], github_username=github_user["login"])
+        with Session(engine) as session:
+            statement = select(User).where(User.github_id == user.github_id)
+            existing_user = session.exec(statement).first()
 
-        jwt_token = create_access_token(data={"sub": str(github_user["id"])})
-        return {"status": "succesful", "detail": f"logged in as {github_user["login"]}"}
+            if existing_user:
+                user = existing_user
+            else:
+                session.add(user) 
+                session.commit() 
+                session.refresh(user)
+
+        jwt_token = create_access_token(data={"sub": str(user.github_id)}) 
+        return {"status": "succesful", "detail": f"logged in as {user.id}"}
 
 
