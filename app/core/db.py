@@ -1,5 +1,5 @@
 from sqlmodel import create_engine
-from settings import settings
+from app.core.settings import settings
 
 db_name = "postgres"
 

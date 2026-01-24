@@ -1,6 +1,7 @@
 from typing import Annotated, Any
 from datetime import datetime, timedelta, timezone
 import httpx
+from sqlmodel import Session
 
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -10,6 +11,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ValidationError
 from pwdlib import PasswordHash
 from app.core.settings import settings
+from app.core.db import engine
 from app.models.user import User
 
 app = FastAPI()
@@ -74,7 +76,6 @@ async def github_callback(code: str):
         raise HTTPException(status_code=400, detail="Github token exchange failed")
 
     token_data = token_response.json()
-    print(f"token_data: {token_data}")
     access_token = token_data.get("access_token")
 
     if not access_token:
@@ -93,7 +94,14 @@ async def github_callback(code: str):
             raise HTTPException(status_code=400, detail="Could not fetch Github user")
 
         github_user = user_response.json()
-        print(f"github_user: {github_user}")        
+
+        user = User(github_id=github_user["id"], github_username=github_user["login"])
+        print(f"User to db: {user}")
+        
+        session = Session(engine)
+        session.add(user)
+        session.commit()
+
         jwt_token = create_access_token(data={"sub": str(github_user["id"])})
         return {"status": "succesful", "detail": f"logged in as {github_user["login"]}"}
 
