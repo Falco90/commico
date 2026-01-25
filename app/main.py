@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 import jwt
 from jwt.exceptions import InvalidTokenError
-from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi import Depends, FastAPI, HTTPException, Security, Response
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ValidationError
@@ -42,7 +42,6 @@ def create_access_token(
         algorithm=settings.ALGORITHM
     )
 
-    print(f"encoded jwt: {encoded_jwt}")
     return encoded_jwt
 
 
@@ -57,7 +56,7 @@ async def github_login():
     return RedirectResponse(url)
 
 @app.get("/auth/github/callback")
-async def github_callback(code: str):
+async def github_callback(code: str, response: Response):
     token_url = "https://github.com/login/oauth/access_token"
     
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -107,7 +106,15 @@ async def github_callback(code: str):
                 session.commit() 
                 session.refresh(user)
 
-        jwt_token = create_access_token(data={"sub": str(user.github_id)}) 
+        jwt_token = create_access_token(data={"sub": str(user.id)}) 
+        response.set_cookie(
+            key="access_token",
+            value=jwt_token,
+            httponly=True,
+            secure=True,        # False in local dev
+            samesite="lax",
+            max_age=60 * 60,    # 1 hour
+        )
+        
         return {"status": "succesful", "detail": f"logged in as {user.id}"}
-
 
