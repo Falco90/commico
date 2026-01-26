@@ -6,8 +6,6 @@ from typing import ClassVar
 class User(SQLModel, table=True):
     __tablename__: ClassVar[str] = "users" # pyright: ignore[reportIncompatibleVariableOverride]
     id: int | None = Field(default=None, primary_key=True)
-    github_id: int
-    github_username: str
     email: str | None = Field(default=None)
     created_at: datetime | None = Field(
         sa_column=Column(
@@ -20,6 +18,7 @@ class User(SQLModel, table=True):
         sa_column=Column(
             DateTime(timezone=True),
             server_default=func.now(),
+            onupdate=func.now(),
             nullable=False,
         )
     )
