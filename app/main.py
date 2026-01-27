@@ -12,8 +12,9 @@ from pydantic import BaseModel, ValidationError
 from pwdlib import PasswordHash
 from app.core.settings import settings
 from app.core.db import engine
+from app.core.security.encryption import encrypt_github_token
 from app.models.user import User
-
+from app.models.github_account import GithubAccount
 app = FastAPI()
 
 def create_access_token(
@@ -59,7 +60,7 @@ async def github_login():
 async def github_callback(code: str, response: Response):
     token_url = "https://github.com/login/oauth/access_token"
     
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient() as client:
         token_response = await client.post(
             token_url,
             headers={"Accept": "application/json"},
@@ -71,16 +72,15 @@ async def github_callback(code: str, response: Response):
             },
         )
 
-    if token_response.status_code != 200:
-        raise HTTPException(status_code=400, detail="Github token exchange failed")
+        if token_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Github token exchange failed")
 
-    token_data = token_response.json()
-    access_token = token_data.get("access_token")
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
 
-    if not access_token:
-        raise HTTPException(status_code=400, detail="No access token from Github")
+        if not access_token:
+            raise HTTPException(status_code=400, detail="No access token from Github")
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
         user_response = await client.get(
             "https://api.github.com/user",
             headers={
@@ -94,27 +94,35 @@ async def github_callback(code: str, response: Response):
 
         github_user = user_response.json()
         
-        user = User(github_id=github_user["id"], github_username=github_user["login"])
         with Session(engine) as session:
-            statement = select(User).where(User.github_id == user.github_id)
+            statement = select(GithubAccount).where(GithubAccount.github_id == github_user["id"])
             existing_user = session.exec(statement).first()
 
             if existing_user:
                 user = existing_user
             else:
-                session.add(user) 
-                session.commit() 
+                user = User()
+                session.add(user)
+                session.commit()
                 session.refresh(user)
+                session.add(GithubAccount(
+                    user_id=user.id,
+                    github_id=github_user["id"], 
+                    github_username=github_user["login"], 
+                    access_token_encrypted=encrypt_github_token(access_token)),
+                )
+                session.commit()
 
+        
         jwt_token = create_access_token(data={"sub": str(user.id)}) 
         response.set_cookie(
             key="access_token",
-            value=jwt_token,
+            value=f"Bearer {jwt_token}",
             httponly=True,
-            secure=True,        # False in local dev
+            secure=False,        # False in local dev
             samesite="lax",
             max_age=60 * 60,    # 1 hour
         )
-        
-        return {"status": "succesful", "detail": f"logged in as {user.id}"}
+    
+    return {"status": "successful", "detail": f"logged in as {user.id} with github id {github_user["id"]}"}
 

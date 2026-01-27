@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str | None = None
     ALGORITHM: str = "HS256"
 
+    #Github encryption
+    GITHUB_TOKEN_ENCRYPTION_KEY: str | None = None
+
     #DB
     POSTGRES_PASSWORD: str | None = None
 
