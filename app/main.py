@@ -12,9 +12,10 @@ from pydantic import BaseModel, ValidationError
 from pwdlib import PasswordHash
 from app.core.settings import settings
 from app.core.db import engine
-from app.core.security.encryption import encrypt_github_token
+from app.core.security.encryption import encrypt_github_token, decrypt_github_token
 from app.models.user import User
 from app.models.github_account import GithubAccount
+from app.services.github.client import fetch_github_activity
 app = FastAPI()
 
 def create_access_token(
@@ -93,28 +94,44 @@ async def github_callback(code: str, response: Response):
             raise HTTPException(status_code=400, detail="Could not fetch Github user")
 
         github_user = user_response.json()
-        
+
         with Session(engine) as session:
             statement = select(GithubAccount).where(GithubAccount.github_id == github_user["id"])
-            existing_user = session.exec(statement).first()
+            github_account = session.exec(statement).first()
 
-            if existing_user:
-                user = existing_user
+            if github_account:
+                user = session.get(User, github_account.user_id)
+
+                if user is None:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Database integrity error: GithubAccount without User"
+                    )
+
+                github_account.access_token_encrypted = encrypt_github_token(access_token)
             else:
                 user = User()
                 session.add(user)
-                session.commit()
-                session.refresh(user)
-                session.add(GithubAccount(
+                session.flush()
+
+                github_account = GithubAccount(
                     user_id=user.id,
                     github_id=github_user["id"], 
                     github_username=github_user["login"], 
-                    access_token_encrypted=encrypt_github_token(access_token)),
-                )
-                session.commit()
+                    access_token_encrypted=encrypt_github_token(access_token))
 
-        
-        jwt_token = create_access_token(data={"sub": str(user.id)}) 
+                session.add(github_account)
+            
+            user_id = user.id
+            encrypted_github_token = github_account.access_token_encrypted
+            session.commit()
+            
+        decrypted_token = decrypt_github_token(encrypted_github_token)
+
+        await fetch_github_activity(token=decrypted_token, from_date=datetime(2026, 1, 20, tzinfo=timezone.utc), to_date=datetime.now(tz=timezone.utc))
+
+        jwt_token = create_access_token(data={"sub": str(user_id)}) 
+
         response.set_cookie(
             key="access_token",
             value=f"Bearer {jwt_token}",
@@ -123,6 +140,6 @@ async def github_callback(code: str, response: Response):
             samesite="lax",
             max_age=60 * 60,    # 1 hour
         )
-    
-    return {"status": "successful", "detail": f"logged in as {user.id} with github id {github_user["id"]}"}
+
+    return {"status": "successful", "detail": f"logged in as {user_id} with github id {github_user["id"]}"}
 
