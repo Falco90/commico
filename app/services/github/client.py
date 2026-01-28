@@ -6,18 +6,30 @@ GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 async def fetch_github_activity(*, token: str, from_date: datetime, to_date: datetime,):
     query = """
     query ($from: DateTime!, $to: DateTime!) {
-      viewer {
-        contributionsCollection(from: $from, to: $to) {
-          contributionCalendar {
-            weeks {
-              contributionDays {
-                date
-                contributionCount
-              }
+        viewer {
+            contributionsCollection(from: $from, to: $to) {
+                contributionCalendar {
+                    weeks {
+                        contributionDays {
+                            date
+                            contributionCount
+                        }
+                    }
+                }   
+                commitContributionsByRepository {
+                    repository {
+                        name
+                        owner { login }
+                        primaryLanguage {
+                            name
+                        }
+                    }
+                    contributions {
+                        totalCount
+                    }
+                }
             }
-          }
         }
-      }
     }
     """
 
@@ -48,6 +60,20 @@ async def fetch_github_activity(*, token: str, from_date: datetime, to_date: dat
     if "errors" in payload:
         raise RuntimeError(f"Github Graphql error: {payload["errors"]}")
 
-    print(f"payload: {payload}")
+    days = (
+        payload["data"]["viewer"]["contributionsCollection"]
+        ["contributionCalendar"]["weeks"]
+    )
 
-    
+    results: list[dict] = []
+
+    return results
+
+def extract_active_days(calendar) -> set[str]:
+    return {
+        day["date"]
+        for week in calendar["weeks"]
+        for day in week["contributionDays"]
+        if day["contributionCount"] > 0
+    }
+
