@@ -17,6 +17,7 @@ class GithubActivityDay(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", index=True, nullable=False)
     date: date = Field(index=True)
     language: str = Field(index=True)
+    commit_count: int
     created_at: datetime | None = Field(
         sa_column=Column(
             DateTime(timezone=True),
