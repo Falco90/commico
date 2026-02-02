@@ -12,7 +12,7 @@ from app.repositories.github_account_repository import (
     update_github_access_token,
 )
 
-from app.services.schemas import GithubLoginResult
+from app.schemas.github import GithubLoginResult
 
 
 async def github_oauth_login(*, code: str) -> GithubLoginResult:
