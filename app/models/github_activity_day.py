@@ -8,14 +8,14 @@ class GithubActivityDay(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint(
             "user_id",
-            "date",
+            "activity_date",
             "language",
             name="uq_github_activity_day_user_date_language",
         ),
     )
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True, nullable=False)
-    date: date = Field(index=True)
+    activity_date: date = Field(index=True)
     language: str = Field(index=True)
     commit_count: int
     created_at: datetime | None = Field(
