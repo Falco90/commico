@@ -39,8 +39,8 @@ async def github_oauth_login(*, code: str) -> GithubLoginResult:
             user = create_user_with_github_account(
                 session,
                 github_id=github_user["id"],
-                username=github_user["login"],
-                encrypted_token=encrypted_token,
+                github_username=github_user["login"],
+                encrypted_access_token=encrypted_token,
             )
             user_id = user.id
             is_new_user = True
