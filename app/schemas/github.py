@@ -6,3 +6,4 @@ class GithubLoginResult(BaseModel):
     jwt: str
     is_new_user: bool
 
+
