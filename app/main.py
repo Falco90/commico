@@ -9,10 +9,8 @@ from app.core.db import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    init_db()   # optional — see note below
+    init_db()
     yield
-    # Shutdown (nothing for now)
 
 def create_app() -> FastAPI:
     app = FastAPI(

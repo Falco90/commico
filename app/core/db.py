@@ -1,8 +1,5 @@
-from sqlmodel import create_engine, SQLModel
+from sqlmodel import create_engine, SQLModel, Session
 from app.core.settings import settings
-from app.models.user import User 
-from app.models.github_account import GithubAccount
-from app.models.github_activity_day import GithubActivityDay
 
 db_name = "postgres"
 
@@ -14,3 +11,6 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
     print(f"tables created!")
 
+def get_session():
+    with Session(engine) as session:
+        yield session
