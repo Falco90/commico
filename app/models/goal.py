@@ -2,7 +2,7 @@ from sqlalchemy import Column, DateTime, func, BigInteger, ForeignKey
 from datetime import datetime
 from sqlmodel import Field, SQLModel
 from typing import ClassVar
-from app.core.models.user import User
+from app.models.user import User
 from datetime import date
 
 class Goal(SQLModel, table=True):
