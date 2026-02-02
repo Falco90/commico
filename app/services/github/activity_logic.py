@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, date
 from typing import Iterable
 
-from app.services.github.client import (
+from app.clients.github_graphql_client import (
     fetch_contributions_overview,
     fetch_repo_commit_dates,
 )
