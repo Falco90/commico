@@ -1,7 +1,8 @@
 from sqlmodel import Session
 
 from app.core.db import engine
-from app.core.security.encryption import encrypt_github_token, create_access_token
+from app.core.security.encryption import encrypt_github_token 
+from app.core.security.jwt import create_access_token
 from app.clients.github_oauth_client import (
     exchange_code_for_token,
     fetch_github_user,
