@@ -7,7 +7,7 @@ from datetime import date
 
 class Goal(SQLModel, table=True):
     __tablename__: ClassVar[str] = "goals" # pyright: ignore[reportIncompatibleVariableOverride]
-    id: str | None = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(
         sa_column=Column(
             BigInteger,

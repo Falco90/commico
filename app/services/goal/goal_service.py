@@ -22,7 +22,7 @@ def create_goal(
         active=True,
     )
 
-    return create_goal(session=session, goal=goal)
+    return create_goal_for_user(session=session, goal=goal)
 
 
 def list_goals(
