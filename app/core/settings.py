@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     #DB
     POSTGRES_PASSWORD: str | None = None
 
+    #OPENAI
+    OPENAI_API_KEY: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8"
