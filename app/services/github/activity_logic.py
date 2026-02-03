@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, date
 from typing import Iterable
+from collections import defaultdict
 
 from app.clients.github_graphql_client import (
     fetch_contributions_overview,
@@ -32,10 +33,21 @@ def filter_repos_by_language(
         and repo["repository"]["primaryLanguage"]["name"] == language
     ]
 
+from collections import defaultdict
+from datetime import date, datetime
+from typing import Iterable
 
-def extract_commit_days(commit_dates: Iterable[datetime]) -> set[date]:
-    return {commit_date.date() for commit_date in commit_dates}
 
+def extract_commit_counts(
+    commits: Iterable[datetime],
+) -> dict[date, int]:
+    counts: dict[date, int] = defaultdict(int)
+
+    for committed_at in commits:
+        day = committed_at.date()
+        counts[day] += 1
+
+    return counts
 
 async def collect_language_activity_days(
     *,

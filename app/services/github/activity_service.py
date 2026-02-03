@@ -1,5 +1,6 @@
 from datetime import datetime, timezone, date
 from typing import Iterable
+from collections import defaultdict
 
 from app.clients.github_graphql_client import (
     fetch_contributions_overview,
@@ -11,7 +12,7 @@ from app.repositories.github_activity_repository import (
 from app.services.github.activity_logic import (
     extract_active_days,
     filter_repos_by_language,
-    extract_commit_days,
+    extract_commit_counts,
 )
 
 
@@ -24,12 +25,6 @@ async def sync_github_language_activity(
     to_date: datetime,
     max_commits_per_repo: int = 100,
 ) -> int:
-    """
-    Sync GitHub activity for a user + language into daily facts.
-
-    Returns number of days persisted.
-    """
-
     overview = await fetch_contributions_overview(
         token=github_token,
         from_date=from_date,
@@ -51,7 +46,7 @@ async def sync_github_language_activity(
     if not candidate_repos:
         return 0
 
-    commit_days: set[date] = set()
+    daily_commit_counts: dict[date, int] = defaultdict(int)
 
     for repo in candidate_repos:
         owner = repo["repository"]["owner"]["login"]
@@ -66,9 +61,17 @@ async def sync_github_language_activity(
             limit=max_commits_per_repo,
         )
 
-        commit_days |= extract_commit_days(commits)
+        commit_counts = extract_commit_counts(commits)
 
-    valid_days = active_days & commit_days
+        for day, count in commit_counts.items():
+            daily_commit_counts[day] += count
+
+    valid_days = active_days & daily_commit_counts.keys()
+
+    final_counts = {
+        day: daily_commit_counts[day]
+        for day in valid_days
+    }
 
     if not valid_days:
         return 0
@@ -76,7 +79,6 @@ async def sync_github_language_activity(
     return upsert_github_activity_days(
         user_id=user_id,
         language=language,
-        days=valid_days,
-        commit_count=None,  # or aggregate later
+        commit_counts=final_counts,
     )
 

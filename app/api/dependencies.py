@@ -3,12 +3,14 @@ from sqlmodel import Session
 
 from app.core.db import get_session
 from app.core.security.jwt import decode_access_token
+from app.core.security.encryption import decrypt_github_token
 from app.models.user import User
+from app.models.github_account import GithubAccount
 
 # app/api/dependencies.py
 
 from fastapi import Depends, HTTPException, Request, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.db import get_session
 from app.core.security.jwt import decode_access_token
@@ -45,3 +47,19 @@ def get_current_user_id(
 ) -> int:
     return user.id
 
+
+async def get_current_github_token(
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> str:
+    github_account = session.exec(
+        select(GithubAccount).where(GithubAccount.user_id == user.id)
+    ).first()
+
+    if not github_account:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User has no connected GitHub account",
+        )
+
+    return decrypt_github_token(github_account.access_token_encrypted)

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import app.models
 from app.core.settings import settings
-from app.api import auth, goals
+from app.api import auth, goals, debug_github_activity
 from app.core.db import init_db
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(goals.router)
+    app.include_router(debug_github_activity.router)
 
     return app
 

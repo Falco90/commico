@@ -12,31 +12,28 @@ def upsert_github_activity_days(
     *,
     user_id: int,
     language: str,
-    days: Iterable[date],
-    commit_count: int | None = None,
+    commit_counts: dict[date, int],
 ) -> int:
     rows = [
         {
             "user_id": user_id,
-            "date": day,
+            "activity_date": day,
             "language": language,
-            "commit_count": commit_count,
+            "commit_count": count,
         }
-        for day in days
+        for day, count in commit_counts.items() 
     ]
 
     if not rows:
         return 0
+    
+    insert_stmt = insert(GithubActivityDay)
 
-    stmt = (
-        insert(GithubActivityDay)
-        .values(rows)
-        .on_conflict_do_update(
-            index_elements=["user_id", "date", "language"],
-            set_={
-                "commit_count": commit_count,
-            },
-        )
+    stmt = insert_stmt.values(rows).on_conflict_do_update(
+        index_elements=["user_id", "activity_date", "language"],
+        set_={
+            "commit_count": insert_stmt.excluded.commit_count,
+        },
     )
 
     with Session(engine) as session:
