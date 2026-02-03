@@ -15,6 +15,16 @@ def get_github_account_by_github_id(
     )
     return session.exec(statement).first()
 
+def get_github_account_for_user(
+    *,
+    session: Session,
+    user_id: int,
+) -> GithubAccount | None:
+    statement = select(GithubAccount).where(
+        GithubAccount.user_id == user_id,
+        GithubAccount.revoked_at.is_(None),
+    )
+    return session.exec(statement).first()
 
 def get_user_by_id(
     session: Session,

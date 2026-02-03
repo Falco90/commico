@@ -13,6 +13,9 @@ def list_goals_by_user(*, session: Session, user_id: int) -> list[Goal]:
     statement = select(Goal).where(Goal.user_id == user_id)
     return list(session.exec(statement))
 
+def list_active_goals(session: Session) -> list[Goal]:
+    statement = select(Goal).where(Goal.active == True)
+    return list(session.exec(statement))
 
 def get_goal_for_user(
     *,
